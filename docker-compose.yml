@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: acg_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: acg_admin
+      POSTGRES_PASSWORD: acg_secure_password
+      POSTGRES_DB: agentic_commerce
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U acg_admin -d agentic_commerce"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
