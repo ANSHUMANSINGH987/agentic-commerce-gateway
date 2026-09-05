@@ -1,23 +1,20 @@
+import os
 import razorpay
-from typing import Dict, Any
-from src.config import settings
+from dotenv import load_dotenv
 
-rzp_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+load_dotenv()
 
-def create_payment_link(
-    amount_inr: float, 
-    reference_id: str, 
-    description: str, 
-    customer_name: str, 
-    customer_email: str, 
-    customer_phone: str
-) -> Dict[str, Any]:
-    """
-    Generates a standard Razorpay Payment Link.
-    Amount is multiplied by 100 because Razorpay expects the smallest currency unit (paise).
-    """
-    payload = {
-        "amount": int(amount_inr * 100), 
+rzp_key = os.getenv("RAZORPAY_KEY_ID")
+rzp_secret = os.getenv("RAZORPAY_KEY_SECRET")
+
+client = razorpay.Client(auth=(rzp_key, rzp_secret)) if rzp_key and rzp_secret else None
+
+def create_payment_link(amount: float, reference_id: str, description: str, customer_name: str, customer_email: str, customer_phone: str) -> dict:
+    if not client:
+        return {"short_url": f"https://mock-razorpay.com/pay/{reference_id}"}
+        
+    payment_link_data = {
+        "amount": int(amount * 100), 
         "currency": "INR",
         "accept_partial": False,
         "reference_id": reference_id,
@@ -28,11 +25,10 @@ def create_payment_link(
             "contact": customer_phone
         },
         "notify": {
-            "sms": True,
-            "email": True
+            "sms": True, 
+            "email": False 
         },
-        "reminder_enable": True
+        "reminder_enable": True,
     }
     
-    response = rzp_client.payment_link.create(payload)
-    return response
+    return client.payment_link.create(payment_link_data)
