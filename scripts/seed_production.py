@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from google import genai
-from sqlalchemy import delete, inspect, text
+from sqlalchemy import inspect, text
 from src.database import AsyncSessionLocal, engine
 from src.models.domain import Base, Product
 
@@ -23,10 +23,13 @@ async def generate_embeddings_batch(texts: list[str]) -> list[list[float]]:
 async def main():
     print("Initializing production catalog generation...")
 
-    # 1. Ensure pgvector extension and all tables exist in Supabase
+    # 1. Ensure pgvector extension and rebuild schema for 3072 dimensions
     async with engine.begin() as conn:
-        print("Ensuring pgvector extension and database schema exist...")
+        print("Ensuring pgvector extension exists...")
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+        
+        print("Resetting schema to apply 3072 vector dimensions...")
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
     # 2. Inspect valid columns dynamically to prevent keyword mismatch
@@ -91,12 +94,10 @@ async def main():
             print(f"Error embedding batch: {e}")
             return
 
-    # 3. Clear existing rows safely via ORM delete (now guaranteed to exist) and seed
+    # 3. Populate database
     print("Populating database...")
     async with AsyncSessionLocal() as session:
         async with session.begin():
-            await session.execute(delete(Product))
-            
             for index, sku in enumerate(skus):
                 sku_data = {
                     "name": sku["name"],
