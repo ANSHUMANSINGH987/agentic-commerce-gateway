@@ -9,6 +9,8 @@ type Message = { role: "user" | "model"; content: string };
 type Product = { id: string; name: string; price: number; stock: number };
 type AuditLog = { id: string; action: string; status: string; details: any; time: string };
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 export default function AgenticCommerceDashboard() {
   const [activeTab, setActiveTab] = useState<"chat" | "ledger">("chat");
   const [messages, setMessages] = useState<Message[]>([
@@ -28,8 +30,8 @@ export default function AgenticCommerceDashboard() {
   const fetchLedger = async () => {
     try {
       const [invRes, logRes] = await Promise.all([
-        fetch("http://localhost:8000/api/inventory"),
-        fetch("http://localhost:8000/api/audit")
+        fetch(`${API_URL}/api/inventory`),
+        fetch(`${API_URL}/api/audit`)
       ]);
       setInventory(await invRes.json());
       setLogs(await logRes.json());
@@ -75,7 +77,7 @@ export default function AgenticCommerceDashboard() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/chat", {
+      const res = await fetch(`${API_URL}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: newMsgs }),
